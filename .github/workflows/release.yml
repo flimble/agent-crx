@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.TAP_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump package.json version on main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          git add package.json
+          git diff --cached --quiet || git commit -m "bump version to ${{ steps.version.outputs.version }}"
+          git push origin main
+
+      - name: Publish to npm
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "agent-crx ${{ github.ref_name }}" \
+            --generate-notes
+
+      - name: Update Homebrew formula
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+
+          curl -sL "https://github.com/${{ github.repository }}/archive/refs/tags/${TAG}.tar.gz" -o release.tar.gz
+          SHA256=$(shasum -a 256 release.tar.gz | awk '{print $1}')
+
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/flimble/homebrew-tap.git tap
+          cd tap
+
+          cat > Formula/agent-crx.rb << EOF
+          class AgentCrx < Formula
+            desc "Chrome extension CDP inspector for AI agents"
+            homepage "https://github.com/flimble/agent-crx"
+            url "https://github.com/flimble/agent-crx/archive/refs/tags/${TAG}.tar.gz"
+            sha256 "${SHA256}"
+            license "MIT"
+            head "https://github.com/flimble/agent-crx.git", branch: "main"
+
+            depends_on "node@22"
+
+            def install
+              system "npm", "install", *std_npm_args
+              bin.install_symlink libexec.glob("bin/*")
+            end
+
+            test do
+              assert_match "CDP inspector", shell_output("#{bin}/agent-crx --help")
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/agent-crx.rb
+          git commit -m "agent-crx ${TAG}" || echo "No changes to commit"
+          git push
