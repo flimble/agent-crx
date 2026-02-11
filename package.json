@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "node --test --import tsx test/*.test.ts",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js"
   },
