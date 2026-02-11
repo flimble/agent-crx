@@ -1,5 +1,5 @@
 {
-  "name": "agent-crx",
+  "name": "@flimble/agent-crx",
   "version": "0.1.0",
   "description": "Chrome extension CDP inspector for AI agents",
   "type": "module",
@@ -17,6 +17,9 @@
     "ai-agent",
     "debugging"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
     "LICENSE",
