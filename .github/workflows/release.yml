@@ -47,7 +47,7 @@ jobs:
           git push origin main
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks
+        run: pnpm publish --no-git-checks || echo "Already published"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -72,14 +72,13 @@ jobs:
           git clone https://x-access-token:${TAP_TOKEN}@github.com/flimble/homebrew-tap.git tap
           cd tap
 
-          cat > Formula/agent-crx.rb << EOF
+          cat > Formula/agent-crx.rb << 'FORMULA'
           class AgentCrx < Formula
             desc "Chrome extension CDP inspector for AI agents"
             homepage "https://github.com/flimble/agent-crx"
-            url "https://github.com/flimble/agent-crx/archive/refs/tags/${TAG}.tar.gz"
-            sha256 "${SHA256}"
+            url "https://registry.npmjs.org/@flimble/agent-crx/-/agent-crx-VERSION.tgz"
+            sha256 "SHAPLACEHOLDER"
             license "MIT"
-            head "https://github.com/flimble/agent-crx.git", branch: "main"
 
             depends_on "node@22"
 
@@ -92,7 +91,14 @@ jobs:
               assert_match "CDP inspector", shell_output("#{bin}/agent-crx --help")
             end
           end
-          EOF
+          FORMULA
+
+          # Replace placeholders with actual values
+          NPM_URL="https://registry.npmjs.org/@flimble/agent-crx/-/agent-crx-${VERSION}.tgz"
+          curl -sL "${NPM_URL}" -o npm-release.tgz
+          NPM_SHA=$(shasum -a 256 npm-release.tgz | awk '{print $1}')
+          sed -i "s|VERSION|${VERSION}|" Formula/agent-crx.rb
+          sed -i "s|SHAPLACEHOLDER|${NPM_SHA}|" Formula/agent-crx.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
