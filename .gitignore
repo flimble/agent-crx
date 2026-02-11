@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tsbuildinfo
+agent-crx.json
+agent-crx.config.json

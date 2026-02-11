@@ -1,0 +1,45 @@
+{
+  "name": "agent-crx",
+  "version": "0.1.0",
+  "description": "Chrome extension CDP inspector for AI agents",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flimble/agent-crx.git"
+  },
+  "keywords": [
+    "chrome",
+    "extension",
+    "cdp",
+    "devtools",
+    "inspector",
+    "ai-agent",
+    "debugging"
+  ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "bin": {
+    "agent-crx": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "chrome-remote-interface": "^0.33.2",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
